@@ -3,61 +3,24 @@ This module parses the term layer of a KAF/NAF object
 """
 from __future__ import print_function
 
+from typing import Union, Iterable
+
 from lxml import etree
 
+from .element import KafNafElement, KafNafElements
 from .span_data import Cspan
 from .external_references_data import CexternalReferences
 from .term_sentiment_data import Cterm_sentiment
 
 
-class Cterm:
+class Cterm(KafNafElement):
     """
     This class encapsulates a <term> NAF or KAF object
     """
-    def __init__(self,node=None,type='NAF'):
-        """
-        Constructor of the object
-        @type node: xml Element or None (to create and empty one)
-        @param node:  this is the node of the element. If it is None it will create a new object
-        @type type: string
-        @param type: the type of the object (KAF or NAF)
-        """
-        self.type = type
-        if node is None:
-            self.node = etree.Element('term')
-        else:
-            self.node = node
+    element_name = 'term'
+    naf_identifier = 'id'
+    kaf_identifier = 'tid'
 
-    def get_node(self):
-        """
-        Returns the node of the element
-        @rtype: xml Element
-        @return: the node of the element
-        """
-        return self.node
-            
-    def get_id(self) -> str:
-        """
-        Returns the term identifier
-        @rtype: string
-        @return: the term identifier
-        """
-        if self.type == 'NAF':
-            return self.node.get('id')
-        elif self.type == 'KAF':
-            return self.node.get('tid')
-    
-    def set_id(self, i: str):
-        """
-        Sets the identifier for the term
-        @type i: string
-        @param i: chunk identifier
-        """
-        if self.type == 'NAF':
-            self.node.set('id',i)
-        elif self.type == 'KAF':
-            self.node.set('tid',i)
-                    
     def get_lemma(self) -> str:
         """
         Returns the lemma of the object
@@ -65,14 +28,14 @@ class Cterm:
         @return: the term lemma
         """
         return self.node.get('lemma')
-    
+
     def set_lemma(self, l: str):
         """
         Sets the lemma for the term
         @type l: string
         @param l: lemma 
         """
-        self.node.set('lemma',l)
+        self.node.set('lemma', l)
     
     def get_pos(self):
         """
@@ -82,7 +45,7 @@ class Cterm:
         """
         return self.node.get('pos')
  
-    def set_pos(self,p):
+    def set_pos(self, p):
         """
         Sets the postag for the term
         @type p: string
@@ -98,7 +61,7 @@ class Cterm:
         """
         return self.node.get('type')
            
-    def set_type(self,t):
+    def set_type(self, t):
         """
         Sets the type for the term
         @type t: string
@@ -146,13 +109,13 @@ class Cterm:
         """
         return self.node.get('morphofeat')
    
-    def set_morphofeat(self,m):
+    def set_morphofeat(self, m):
         """
         Sets the morphofeat attribute
         @type m: string
         @param m: the morphofeat value
         """
-        self.node.set('morphofeat',m)
+        self.node.set('morphofeat', m)
 
     def get_span(self):
         """
@@ -166,7 +129,7 @@ class Cterm:
         else:
             return None
         
-    def set_span(self,this_span):
+    def set_span(self, this_span):
         """
         Sets the span for the term
         @type this_span: L{Cspan}
@@ -261,92 +224,37 @@ class Cterm:
             self.node.remove(ex_ref_node)
 
 
-class Cterms:
+class Cterms(KafNafElements):
     """
     This class encapsulates the term layer (collection of term objects)
     """
-    def __init__(self,node=None,type='NAF'):
-        """
-        Constructor of the object
-        @type node: xml Element or None (to create and empty one)
-        @param node:  this is the node of the element. If it is None it will create a new object
-        @type type: string
-        @param type: the type of the object (KAF or NAF)
-        """
-        self.idx = {}
-        self.type = type
-        if node is None:
-            self.node = etree.Element('terms')
-        else:
-            self.node = node
-            for node_term in self.__get_node_terms():
-                term_obj = Cterm(node_term,self.type)
-                self.idx[term_obj.get_id()] = node_term    
-    
-    def get_node(self):
-        """
-        Returns the node of the element
-        @rtype: xml Element
-        @return: the node of the element
-        """
-        return self.node
-    
-    def to_kaf(self):
-        """
-        Converts the object to KAF (if it is NAF)
-        """
-        if self.type == 'NAF':
-            self.type = 'KAF'
-            for node in self.__get_node_terms():
-                node.set('tid',node.get('id'))
-                del node.attrib['id']
+    child_element_name = 'term'
+    child_class = Cterm
 
-    def to_naf(self):
-        """
-        Converts the object to NAF (if it is KAF)
-        """
-        if self.type == 'KAF':
-            self.type = 'NAF'
-            for node in self.__get_node_terms():
-                node.set('id',node.get('tid'))
-                del node.attrib['tid']
-                
-    def __get_node_terms(self):
-        for node_term in self.node.findall('term'):
-            yield node_term
-
-    def __iter__(self):
-        """
-        Iterator that returns single term objects in the layer
-        @rtype: L{Cterm}
-        @return: term objects
-        """
-        for node_term in self.__get_node_terms():
-            yield Cterm(node_term,self.type)
-            
-    def get_term(self,term_id):
+    def get_term(self, term_id) -> Union[Cterm, None]:
         """
         Returns the term object for the supplied identifier
         @type term_id: string
         @param term_id: term identifier
         """
-        if term_id in self.idx:
-            return Cterm(self.idx[term_id],self.type)
-        else:
-            return None
-        
-    def add_term(self,term_obj):
+        return self.get_child(term_id)
+
+    def add_term(self, term_obj: Cterm) -> None:
         """
         Adds a term object to the layer
         @type term_obj: L{Cterm}
         @param term_obj: the term object
         """
-        if term_obj.get_id() in self.idx:
-            raise ValueError("Term with id {} already exists!"
-                             .format(term_obj.get_id()))
-        self.node.append(term_obj.get_node())
-        self.idx[term_obj.get_id()] = term_obj
-           
+        return self.add_child(term_obj)
+
+    def remove_terms(self, list_term_ids: Iterable[str]):
+        """
+        Removes a list of terms from the layer
+        @type list_term_ids: list
+        @param list_term_ids: list of term identifiers to be removed
+        """
+        self.remove_children(list_term_ids)
+
     def add_external_reference(self,term_id, external_ref):
         """
         Adds an external reference for the given term
@@ -360,25 +268,5 @@ class Cterms:
             term_obj.add_external_reference(external_ref)
         else:
             print('{term_id} not in self.idx'.format(**locals()))
-            
-            
-            
 
-    def remove_terms(self,list_term_ids):
-        """
-        Removes a list of terms from the layer
-        @type list_term_ids: list
-        @param list_term_ids: list of term identifiers to be removed  
-        """
-        nodes_to_remove = set()
-        for term in self:
-            if term.get_id() in list_term_ids:
-                nodes_to_remove.add(term.get_node())
-                #For removing the previous comment
-                prv = term.get_node().getprevious()
-                if prv is not None:
-                    nodes_to_remove.add(prv)
-        
-        for node in nodes_to_remove:
-            self.node.remove(node)
-        
+
