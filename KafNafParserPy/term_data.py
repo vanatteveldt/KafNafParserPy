@@ -21,7 +21,8 @@ class Cterm(KafNafElement):
     naf_identifier = 'id'
     kaf_identifier = 'tid'
 
-    def get_lemma(self) -> str:
+    @property
+    def lemma(self) -> str:
         """
         Returns the lemma of the object
         @rtype: string
@@ -29,13 +30,18 @@ class Cterm(KafNafElement):
         """
         return self.node.get('lemma')
 
-    def set_lemma(self, l: str):
+    @lemma.setter
+    def lemma(self, l: str):
         """
         Sets the lemma for the term
         @type l: string
         @param l: lemma 
         """
         self.node.set('lemma', l)
+
+    # if we want backwards compatibility
+    get_lemma = lemma.fget
+    set_lemma = lemma.fset
     
     def get_pos(self):
         """
